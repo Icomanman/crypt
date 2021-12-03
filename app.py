@@ -27,6 +27,29 @@ def main(ticker="btcusdt"):
     thread.start()
 
 
+def get_minute_data(client, sym, interval, lookback):
+    dat = client.get_historical_klines(sym, interval, lookback)
+    frame = pd.DataFrame(dat)
+    frame = frame.iloc[:, :6]
+    frame.columns = ["Time", "Open", "High", "Low", "Close", "Volume"]
+    frame = frame.set_index("Time")
+    frame.index = pd.to_datetime(frame.index, unit="ms")
+    frame = frame.astype(float)
+    return frame
+
+
+def data_to_frame(dat):
+    dat = json.loads(dat)
+    frame = pd.DataFrame([dat])
+    # frame = frame.iloc[:, :6]
+    # frame.columns = ["Time", "Open", "High", "Low", "Close", "Volume"]
+    # frame = frame.set_index("Time")
+    # frame.index = pd.to_datetime(frame.index, unit="ms")
+    # frame = frame.astype(float)
+    print(frame)
+    return frame
+
+
 def websocket_thread(
     params, method="SUBSCRIBE", misc={"thread": None, "running": False}
 ):
@@ -62,9 +85,10 @@ def websocket_thread(
         except Exception as e:
             print(e)
             print("{} - data: {}".format(e, data))
-        else:
-            if "result" not in msg:
-                print(msg)
+
+        if "result" not in msg:
+            # data processing:
+            data_to_frame(data)
 
     try:
         if ws:
@@ -80,17 +104,6 @@ def websocket_keepalive(interval=30):
     while ws.connected:
         ws.ping("keepalive")
         time.sleep(interval)
-
-
-def get_minute_data(client, sym, interval, lookback):
-    dat = client.get_historical_klines(sym, interval, lookback)
-    frame = pd.DataFrame(dat)
-    frame = frame.iloc[:, :6]
-    frame.columns = ["Time", "Open", "High", "Low", "Close", "Volume"]
-    frame = frame.set_index("Time")
-    frame.index = pd.to_datetime(frame.index, unit="ms")
-    frame = frame.astype(float)
-    return frame
 
 
 if __name__ == "__main__":
